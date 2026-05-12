@@ -1,0 +1,22 @@
+---
+- name: Install OpenSSH server
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+    update_cache: true
+
+- name: Create SFTP group
+  ansible.builtin.group:
+    name: sftpusers
+    state: present
+
+- name: Configure SFTP-only access
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    block: |
+      Match Group sftpusers
+        ChrootDirectory /data/%u
+        ForceCommand internal-sftp
+        AllowTcpForwarding no
+        X11Forwarding no
+  notify: restart sshd

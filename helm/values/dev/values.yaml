@@ -1,0 +1,12 @@
+# Dev environment overrides
+auth-service:
+  replicaCount: 1
+
+user-service:
+  replicaCount: 1
+
+order-service:
+  replicaCount: 1
+
+notification-service:
+  replicaCount: 1

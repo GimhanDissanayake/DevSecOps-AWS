@@ -1,0 +1,17 @@
+# Prometheus will be deployed via kube-prometheus-stack Helm chart
+# This file documents custom scrape configs
+
+# ServiceMonitor for app microservices
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: microservices
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: devsecops-aws
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

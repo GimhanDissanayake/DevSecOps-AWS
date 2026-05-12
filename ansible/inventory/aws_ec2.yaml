@@ -1,0 +1,10 @@
+---
+plugin: amazon.aws.aws_ec2
+regions:
+  - ap-southeast-1
+filters:
+  tag:Role: sftp
+  instance-state-name: running
+keyed_groups:
+  - key: tags.Role
+    prefix: role

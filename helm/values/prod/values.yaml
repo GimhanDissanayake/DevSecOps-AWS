@@ -1,0 +1,12 @@
+# Prod environment overrides
+auth-service:
+  replicaCount: 3
+
+user-service:
+  replicaCount: 2
+
+order-service:
+  replicaCount: 2
+
+notification-service:
+  replicaCount: 2

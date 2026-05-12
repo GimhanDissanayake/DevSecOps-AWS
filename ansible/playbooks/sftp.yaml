@@ -1,0 +1,6 @@
+---
+- name: Configure SFTP Server
+  hosts: sftp
+  become: true
+  roles:
+    - sftp-server
