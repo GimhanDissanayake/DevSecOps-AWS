@@ -9,6 +9,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
@@ -24,6 +25,53 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  auth-service:
+    build: ./apps/auth-service
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
+      PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  user-service:
+    build: ./apps/user-service
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
+      PORT: "8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  order-service:
+    build: ./apps/order-service
+    ports:
+      - "8082:8082"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
+      PORT: "8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  notification-service:
+    build: ./apps/notification-service
+    ports:
+      - "8083:8083"
+    environment:
+      REDIS_URL: redis:6379
+      PORT: "8083"
+    depends_on:
+      redis:
+        condition: service_healthy
 
 volumes:
   pgdata:
