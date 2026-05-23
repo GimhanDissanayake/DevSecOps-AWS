@@ -1,12 +1,22 @@
 # Dev environment overrides
+# These override the defaults in each chart's values.yaml
+
 auth-service:
   replicaCount: 1
+  autoscaling:
+    enabled: false
 
 user-service:
   replicaCount: 1
+  autoscaling:
+    enabled: false
 
 order-service:
   replicaCount: 1
+  autoscaling:
+    enabled: false
 
 notification-service:
   replicaCount: 1
+  autoscaling:
+    enabled: false

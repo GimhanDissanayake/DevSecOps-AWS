@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "auth-service.fullname" . }}
+  labels:
+    {{- include "auth-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "auth-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "auth-service.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "auth-service.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          # --- PROBES ---
+          # WHY livenessProbe: Restarts the container if it's stuck/deadlocked.
+          # If /health stops responding, K8s kills and restarts the pod.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          # WHY readinessProbe: Removes pod from Service traffic if not ready.
+          # During startup or if DB connection drops, pod stops receiving requests.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          # --- RESOURCES ---
+          # WHY requests: Scheduler uses this to place pods on nodes.
+          # WHY limits: Prevents a single pod from consuming all node resources.
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          # --- ENVIRONMENT VARIABLES ---
+          env:
+            - name: PORT
+              value: {{ .Values.service.port | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "auth-service.fullname" . }}-secrets
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "auth-service.fullname" . }}-secrets
+                  key: jwt-secret
+          # --- SECURITY CONTEXT ---
+          # WHY: Defense in depth. Even if container is compromised,
+          # attacker can't escalate to root or write to filesystem.
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
