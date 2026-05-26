@@ -3,12 +3,16 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - 'apps/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'apps/**'
 
+# WHY minimal permissions: Default is read-only. Each job requests only what it needs.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   lint-and-test:
@@ -37,6 +41,9 @@ jobs:
     needs: lint-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required for OIDC auth to AWS
+      contents: read
     strategy:
       matrix:
         service: [auth-service, user-service, order-service, notification-service]
@@ -47,15 +54,24 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ap-southeast-1
+          aws-region: us-east-1
 
       - name: Login to ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
+      - name: Build image
+        run: |
+          docker build -t ${{ steps.ecr.outputs.registry }}/devsecops-aws/${{ matrix.service }}:sha-${{ github.sha }} apps/${{ matrix.service }}/
+
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          context: apps/${{ matrix.service }}
-          push: true
-          tags: ${{ steps.ecr.outputs.registry }}/${{ matrix.service }}:${{ github.sha }}
+          image-ref: ${{ steps.ecr.outputs.registry }}/devsecops-aws/${{ matrix.service }}:sha-${{ github.sha }}
+          format: 'table'
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+
+      - name: Push to ECR
+        run: |
+          docker push ${{ steps.ecr.outputs.registry }}/devsecops-aws/${{ matrix.service }}:sha-${{ github.sha }}
