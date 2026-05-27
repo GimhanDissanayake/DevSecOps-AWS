@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: auth-service
+  name: order-service
   namespace: argocd
   # WHY finalizer: Ensures ArgoCD cleans up K8s resources when the Application is deleted
   finalizers:
@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/GimhanDissanayake/DevSecOps-AWS.git
     targetRevision: main
-    path: helm/charts/auth-service
+    path: helm/charts/order-service
     helm:
       valueFiles:
         - ../../values/dev/values.yaml
