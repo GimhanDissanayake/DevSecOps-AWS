@@ -1,0 +1,12 @@
+# SFTP users to create
+sftp_users:
+  - name: sftpuser
+    password: "!"  # Locked (key-only auth)
+
+# Directory for SFTP data
+sftp_data_dir: /data
+
+# SSH hardening
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"

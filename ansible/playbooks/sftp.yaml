@@ -1,6 +1,29 @@
 ---
 - name: Configure SFTP Server
-  hosts: sftp
+  hosts: role_sftp
   become: true
+
+  pre_tasks:
+    - name: Update all packages
+      ansible.builtin.apt:
+        upgrade: safe
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install basic security packages
+      ansible.builtin.apt:
+        name:
+          - ufw
+          - fail2ban
+          - unattended-upgrades
+        state: present
+
+    - name: Enable UFW with SSH allowed
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+        state: enabled
+
   roles:
     - sftp-server

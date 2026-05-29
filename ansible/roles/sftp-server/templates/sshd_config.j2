@@ -1,0 +1,21 @@
+# Managed by Ansible — do not edit manually
+Port {{ ssh_port }}
+PermitRootLogin {{ ssh_permit_root_login }}
+PasswordAuthentication {{ ssh_password_authentication }}
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+# Disable unnecessary features
+X11Forwarding no
+AllowTcpForwarding no
+AllowAgentForwarding no
+
+# SFTP configuration
+Subsystem sftp internal-sftp
+
+# Chroot SFTP users into their directory
+Match Group sftpusers
+    ChrootDirectory {{ sftp_data_dir }}/%u
+    ForceCommand internal-sftp
+    AllowTcpForwarding no
+    X11Forwarding no

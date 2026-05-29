@@ -10,13 +10,40 @@
     name: sftpusers
     state: present
 
-- name: Configure SFTP-only access
-  ansible.builtin.blockinfile:
-    path: /etc/ssh/sshd_config
-    block: |
-      Match Group sftpusers
-        ChrootDirectory /data/%u
-        ForceCommand internal-sftp
-        AllowTcpForwarding no
-        X11Forwarding no
+- name: Create SFTP user directories
+  ansible.builtin.file:
+    path: "{{ sftp_data_dir }}/{{ item.name }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ sftp_users }}"
+
+- name: Create upload directory for each user
+  ansible.builtin.file:
+    path: "{{ sftp_data_dir }}/{{ item.name }}/upload"
+    state: directory
+    owner: "{{ item.name }}"
+    group: sftpusers
+    mode: "0755"
+  loop: "{{ sftp_users }}"
+
+- name: Create SFTP users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    group: sftpusers
+    home: "{{ sftp_data_dir }}/{{ item.name }}"
+    shell: /usr/sbin/nologin
+    create_home: false
+    password: "{{ item.password }}"
+  loop: "{{ sftp_users }}"
+
+- name: Deploy SSH configuration
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "sshd -t -f %s"
   notify: restart sshd
