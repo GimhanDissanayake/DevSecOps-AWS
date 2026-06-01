@@ -1,26 +1,63 @@
-groups:
-  - name: microservices
-    rules:
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "High error rate on {{ $labels.service }}"
+# PrometheusRule CRD — picked up automatically by kube-prometheus-stack
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: microservices-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus  # Must match the Helm release name for discovery
+spec:
+  groups:
+    - name: availability
+      rules:
+        # WHY: High error rate = users are experiencing failures
+        - alert: HighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+              /
+              sum(rate(http_requests_total[5m])) by (service)
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.service }} error rate above 5%"
+            runbook: "https://github.com/GimhanDissanayake/DevSecOps-AWS/docs/runbooks/high-error-rate.md"
 
-      - alert: HighLatency
-        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 1
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "P99 latency above 1s on {{ $labels.service }}"
+    - name: latency
+      rules:
+        # WHY: P99 latency > 1s means tail users are having a bad experience
+        - alert: HighLatencyP99
+          expr: |
+            histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.service }} P99 latency above 1s"
 
-      - alert: PodRestartLoop
-        expr: increase(kube_pod_container_status_restarts_total[1h]) > 3
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Pod {{ $labels.pod }} restarting frequently"
+    - name: saturation
+      rules:
+        # WHY: Frequent restarts indicate crash loops or OOM kills
+        - alert: PodRestartLoop
+          expr: increase(kube_pod_container_status_restarts_total[1h]) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} restarting frequently"
+
+        # WHY: High memory = approaching OOM kill
+        - alert: HighMemoryUsage
+          expr: |
+            (
+              container_memory_working_set_bytes{container!=""}
+              /
+              container_spec_memory_limit_bytes{container!=""}
+            ) > 0.85
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.container }} using >85% memory limit"

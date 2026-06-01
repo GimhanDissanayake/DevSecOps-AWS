@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: microservices-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"  # Grafana sidecar picks up ConfigMaps with this label
+data:
+  microservices.json: |
+    {
+      "title": "Microservices Overview",
+      "description": "RED metrics for all services",
+      "panels": [
+        {
+          "title": "Request Rate (per service)",
+          "type": "timeseries",
+          "targets": [{"expr": "sum(rate(http_requests_total[5m])) by (service)"}]
+        },
+        {
+          "title": "Error Rate %",
+          "type": "timeseries",
+          "targets": [{"expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) * 100"}]
+        },
+        {
+          "title": "P99 Latency (seconds)",
+          "type": "timeseries",
+          "targets": [{"expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))"}]
+        }
+      ]
+    }

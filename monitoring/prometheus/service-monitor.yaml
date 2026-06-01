@@ -7,10 +7,15 @@ kind: ServiceMonitor
 metadata:
   name: microservices
   namespace: monitoring
+  labels:
+    release: prometheus  # Required for kube-prometheus-stack to discover this
 spec:
+  namespaceSelector:
+    matchNames:
+      - apps
   selector:
     matchLabels:
-      app.kubernetes.io/part-of: devsecops-aws
+      app.kubernetes.io/managed-by: Helm
   endpoints:
     - port: http
       path: /metrics
