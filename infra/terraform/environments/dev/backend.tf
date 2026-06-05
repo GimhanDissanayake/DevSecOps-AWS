@@ -16,7 +16,7 @@
 
 terraform {
   backend "s3" {
-    bucket       = "devsecops-aws-tfstate"
+    bucket       = "test-devsecops-aws-tfstate"
     key          = "dev/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true

@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Bootstrap resources for DevSecOps-AWS project.
+  Creates S3 state bucket and GitHub OIDC provider + IAM role.
+  Deploy: aws cloudformation deploy --template-file bootstrap.yaml --stack-name devsecops-bootstrap --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubOrg=<your-org> RepoName=<your-repo>
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Description: GitHub username or organization
+    Default: GimhanDissanayake
+
+  RepoName:
+    Type: String
+    Description: GitHub repository name
+    Default: DevSecOps-AWS
+
+  StateBucketName:
+    Type: String
+    Description: S3 bucket name for Terraform state
+    Default: devsecops-aws-tfstate
+
+Resources:
+  # ===========================================================================
+  # S3 Bucket for Terraform State
+  # ===========================================================================
+  StateBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref StateBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      ObjectLockEnabled: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Project
+          Value: devsecops-aws
+        - Key: ManagedBy
+          Value: cloudformation
+
+  # ===========================================================================
+  # GitHub OIDC Identity Provider
+  # Allows GitHub Actions to assume IAM roles without stored credentials
+  # ===========================================================================
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  # ===========================================================================
+  # IAM Role for GitHub Actions CI/CD
+  # Trusted by the specific repo only (not all of GitHub)
+  # ===========================================================================
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: devsecops-github-actions-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOIDCProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOrg}/${RepoName}:*"
+      Policies:
+        - PolicyName: ECRPushAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ECRAuth
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+              - Sid: ECRPush
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:PutImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/devsecops-aws/*"
+
+Outputs:
+  StateBucketName:
+    Description: S3 bucket for Terraform state
+    Value: !Ref StateBucket
+
+  GitHubActionsRoleArn:
+    Description: IAM Role ARN for GitHub Actions (set as AWS_ROLE_ARN secret in GitHub)
+    Value: !GetAtt GitHubActionsRole.Arn
+
+  OIDCProviderArn:
+    Description: GitHub OIDC Provider ARN
+    Value: !Ref GitHubOIDCProvider
