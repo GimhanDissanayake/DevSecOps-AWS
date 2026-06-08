@@ -10,6 +10,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type contextKey string
+
+const UserIDKey contextKey = "user_id"
+
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -36,7 +40,7 @@ func RequireAuth(secret string, next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user_id", claims.Subject)
+		ctx := context.WithValue(r.Context(), UserIDKey, claims.Subject)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

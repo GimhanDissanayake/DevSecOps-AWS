@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/GimhanDissanayake/DevSecOps-AWS/apps/auth-service/internal/middleware"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -72,7 +73,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(tokens)
+	_ = json.NewEncoder(w).Encode(tokens)
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +104,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tokens)
+	_ = json.NewEncoder(w).Encode(tokens)
 }
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
@@ -131,11 +132,11 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tokens)
+	_ = json.NewEncoder(w).Encode(tokens)
 }
 
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 
 	var email, name string
 	err := h.db.QueryRow(
@@ -147,7 +148,7 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"id": userID, "email": email, "name": name,
 	})
 }

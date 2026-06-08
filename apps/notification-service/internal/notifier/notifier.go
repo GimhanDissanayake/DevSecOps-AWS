@@ -50,7 +50,7 @@ func (s *Service) Enqueue(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte(`{"status":"queued"}`))
+	_, _ = w.Write([]byte(`{"status":"queued"}`))
 }
 
 func (s *Service) ProcessQueue() {

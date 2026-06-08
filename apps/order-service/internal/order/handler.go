@@ -3,8 +3,10 @@ package order
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 
+	"github.com/GimhanDissanayake/DevSecOps-AWS/apps/order-service/internal/middleware"
 	_ "github.com/lib/pq"
 )
 
@@ -36,7 +38,7 @@ func NewHandler(dbURL string) (*Handler, error) {
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 
 	var body struct {
 		Item     string  `json:"item"`
@@ -66,13 +68,15 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"id": id, "total": total, "status": "pending",
-	})
+	}); err != nil {
+		log.Printf("encode error: %v", err)
+	}
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 
 	rows, err := h.db.Query(
 		`SELECT id, user_id, item, quantity, total, status, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,
@@ -94,11 +98,13 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(orders)
+	if err := json.NewEncoder(w).Encode(orders); err != nil {
+		log.Printf("encode error: %v", err)
+	}
 }
 
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 	id := r.PathValue("id")
 
 	var o Order
@@ -112,5 +118,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(o)
+	if err := json.NewEncoder(w).Encode(o); err != nil {
+		log.Printf("encode error: %v", err)
+	}
 }

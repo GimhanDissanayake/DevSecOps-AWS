@@ -49,7 +49,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	_ = json.NewEncoder(w).Encode(users)
 }
 
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +63,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(u)
+	_ = json.NewEncoder(w).Encode(u)
 }
 
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +90,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"updated"}`))
+	_, _ = w.Write([]byte(`{"status":"updated"}`))
 }
 
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
