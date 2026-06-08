@@ -15,7 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatal("db connection failed:", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
