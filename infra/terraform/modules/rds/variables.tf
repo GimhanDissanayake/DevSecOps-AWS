@@ -28,7 +28,7 @@ variable "instance_class" {
 variable "engine_version" {
   description = "PostgreSQL version"
   type        = string
-  default     = "16.3"
+  default     = "17.5"
 }
 
 variable "allocated_storage" {
@@ -71,4 +71,9 @@ variable "backup_retention_days" {
   description = "Number of days to retain backups"
   type        = number
   default     = 7
+}
+
+variable "kms_key_arn" {
+  description = "KMS key ARN for encrypting RDS storage"
+  type        = string
 }

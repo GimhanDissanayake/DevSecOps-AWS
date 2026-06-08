@@ -54,6 +54,15 @@ resource "aws_eks_cluster" "main" {
     security_group_ids      = [aws_security_group.cluster.id]
   }
 
+  # WHY: Encrypts Kubernetes secrets at rest in etcd using your KMS key.
+  # Without this, secrets are only base64-encoded (not encrypted).
+  encryption_config {
+    provider {
+      key_arn = var.kms_key_arn
+    }
+    resources = ["secrets"]
+  }
+
   # WHY: Enables control plane logging for debugging and audit.
   # These logs go to CloudWatch. Enable what you need — each type costs money.
   enabled_cluster_log_types = ["api", "authenticator"]
@@ -126,6 +135,34 @@ resource "aws_iam_role_policy_attachment" "nodes_ecr" {
 }
 
 # ---------------------------------------------------------------------------
+# Launch Template for Node EBS Encryption
+# WHY: Encrypts the root volume of every worker node with the account's
+# default EBS encryption key (set by org policy/Control Tower).
+# ---------------------------------------------------------------------------
+resource "aws_launch_template" "nodes" {
+  name_prefix = "${var.project}-${var.environment}-nodes-"
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      volume_size           = 20
+      volume_type           = "gp3"
+      encrypted             = true
+      # Use account default KMS key (required by org policy)
+      delete_on_termination = true
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "${var.project}-${var.environment}-node"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Managed Node Group
 # WHY managed: AWS handles AMI updates, node draining during upgrades.
 # WHY t3.medium: 2 vCPU, 4GB RAM — enough for our 4 services + platform tools.
@@ -136,6 +173,11 @@ resource "aws_eks_node_group" "main" {
   node_group_name = "${var.project}-${var.environment}-nodes"
   node_role_arn   = aws_iam_role.nodes.arn
   subnet_ids      = var.private_subnet_ids
+
+  launch_template {
+    id      = aws_launch_template.nodes.id
+    version = aws_launch_template.nodes.latest_version
+  }
 
   instance_types = [var.node_instance_type]
 

@@ -21,3 +21,7 @@ output "ecr_repositories" {
 output "sftp_public_ip" {
   value = module.sftp.public_ip
 }
+
+output "kms_key_arn" {
+  value = aws_kms_key.main.arn
+}

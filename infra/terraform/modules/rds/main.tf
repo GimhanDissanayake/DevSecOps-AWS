@@ -70,6 +70,7 @@ resource "aws_db_instance" "main" {
   max_allocated_storage = var.max_allocated_storage # Autoscaling
   storage_type          = "gp3"
   storage_encrypted     = true # WHY: Encryption at rest — always enable this.
+  kms_key_id            = var.kms_key_arn # WHY: Use our CMK, not the AWS default key
 
   # Database
   db_name  = var.db_name

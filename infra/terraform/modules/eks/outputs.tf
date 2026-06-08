@@ -27,3 +27,8 @@ output "cluster_security_group_id" {
   description = "Security group ID of the EKS cluster (used by RDS/ElastiCache to allow traffic)"
   value       = aws_security_group.cluster.id
 }
+
+output "node_role_arn" {
+  description = "ARN of the EKS node IAM role (for KMS key policy)"
+  value       = aws_iam_role.nodes.arn
+}

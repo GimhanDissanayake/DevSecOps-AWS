@@ -47,3 +47,8 @@ variable "node_max_size" {
   type        = number
   default     = 3
 }
+
+variable "kms_key_arn" {
+  description = "KMS key ARN for encrypting EKS secrets and node EBS volumes"
+  type        = string
+}
