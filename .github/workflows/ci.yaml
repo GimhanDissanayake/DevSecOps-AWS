@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - 'apps/**'
+  workflow_dispatch: # Allows manual trigger via GitHub UI or gh CLI
 
 # WHY minimal permissions: Default is read-only. Each job requests only what it needs.
 permissions:
