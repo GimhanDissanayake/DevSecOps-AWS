@@ -1,6 +1,6 @@
 module github.com/GimhanDissanayake/DevSecOps-AWS/apps/notification-service
 
-go 1.24
+go 1.26
 
 require github.com/redis/go-redis/v9 v9.5.1
 
